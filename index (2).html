@@ -204,6 +204,12 @@
   const gameOverMsg = document.getElementById('gameOverMsg');
   const startBtn = document.getElementById('startBtn');
   const restartBtn = document.getElementById('restartBtn');
+  const gameOverSound = new Audio('gamerover.wav');
+gameOverSound.preload = 'auto';
+gameOverSound.volume = 0.9;
+  const danoSound = new Audio('Dano.mp3');
+danoSound.preload = 'auto';
+danoSound.volume = 0.9;
 
   let player;
   let enemies = [];
@@ -217,6 +223,11 @@
 
   let dashEffects = [];
 
+  // Som do dash
+  const dashSound = new Audio('Dash.mp3');
+  dashSound.preload = 'auto';
+  dashSound.volume = 0.9;
+
   const naveImg = new Image();
   naveImg.src = 'nave.png';
 
@@ -226,10 +237,8 @@
   const bgSpaceImg = new Image();
   bgSpaceImg.src = 'space.jpg';
 
-  function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
+  // Inicializa o player apenas uma vez
+  function initPlayer() {
     player = {
       x: canvas.width / 2,
       y: canvas.height / 2,
@@ -241,8 +250,19 @@
       dashing: false,
       angle: 0,
     };
+  }
 
-    enemies = [];
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    // Atualiza posição do player só se ele já existir
+    if (!player) {
+      initPlayer();
+    } else {
+      // Mantém jogador dentro da tela após redimensionar
+      player.x = Math.min(canvas.width - player.radius, Math.max(player.radius, player.x));
+      player.y = Math.min(canvas.height - player.radius, Math.max(player.radius, player.y));
+    }
   }
 
   function updateHearts() {
@@ -344,18 +364,23 @@
       player.angle = Math.atan2(player.dy, player.dx);
     }
 
-    // Dash
+    // Dash (corrigido, sem repetição)
     if (keys[' '] && player.dashCooldown === 0 && (player.dx !== 0 || player.dy !== 0)) {
       player.x += player.dx * 10;
       player.y += player.dy * 10;
       player.dashCooldown = 30;
       player.dashing = true;
       createDashEffect();
+
+      dashSound.currentTime = 0;
+      dashSound.play().catch(e => console.log('dash play blocked:', e));
     } else {
       player.dashing = false;
     }
+
     if (player.dashCooldown > 0) player.dashCooldown--;
 
+    // Atualiza posição normal somando o movimento
     player.x = Math.min(canvas.width - player.radius, Math.max(player.radius, player.x + player.dx));
     player.y = Math.min(canvas.height - player.radius, Math.max(player.radius, player.y + player.dy));
 
@@ -372,15 +397,20 @@
       }
 
       if(circleCollision(player, e)) {
-        lives--;
-        updateHearts();
-        enemies.splice(i, 1);
-        if(lives <= 0) {
-          gameOver = true;
-          gameStarted = false;
-          showGameOver();
-        }
-      }
+    lives--;
+    updateHearts();
+
+    // Tocar som de dano
+    danoSound.currentTime = 0; // Reinicia o áudio para tocar sempre do começo
+    danoSound.play().catch(err => console.log('Som de dano bloqueado:', err));
+
+    enemies.splice(i, 1);
+    if(lives <= 0) {
+        gameOver = true;
+        gameStarted = false;
+        showGameOver();
+    }
+}
     }
   }
 
@@ -437,10 +467,12 @@
     if(!gameOver && gameStarted) requestAnimationFrame(loop);
   }
 
-  function showGameOver() {
-    gameOverMsg.innerHTML = `Você chegou ao nível ${level}!`;
-    gameOverMenu.style.display = 'flex';
-  }
+function showGameOver() {
+  gameOverSound.currentTime = 0;
+  gameOverSound.play().catch(e => console.log('game over sound blocked:', e));
+  gameOverMsg.innerHTML = `Você chegou ao nível ${level}!`;
+  gameOverMenu.style.display = 'flex';
+}
 
   function startGame() {
     lives = 3;
@@ -474,6 +506,7 @@
     if(gameStarted) draw();
   });
 
+  // Inicializa
   resize();
   updateHearts();
 </script>

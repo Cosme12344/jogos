@@ -56,7 +56,7 @@
     top: 0; left: 0;
     width: 100vw;
     height: 100vh;
-    background-image: url('menu.jpg'); /* Coloque aqui o nome correto da sua imagem */
+    background-image: url('menu.jpg');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -111,7 +111,6 @@
     background-color: #0af;
   }
 
-  /* Animations */
   @keyframes pulseHeart {
     0%,100% {
       transform: scale(1);
@@ -216,20 +215,16 @@
   let gameOver = false;
   let gameStarted = false;
 
-  // For dash animation
   let dashEffects = [];
 
-  // Load player ship image
   const naveImg = new Image();
-  naveImg.src = 'nave.png'; // Ajuste para o caminho correto da nave rosa
+  naveImg.src = 'nave.png';
 
-  // Load meteor image
   const enemyImg = new Image();
-  enemyImg.src = 'meteoro.png'; // Ajuste para o caminho correto do meteoro
+  enemyImg.src = 'meteoro.png';
 
-  // Load background space image
   const bgSpaceImg = new Image();
-  bgSpaceImg.src = 'space.jpg'; // Ajuste para o nome correto e extensão
+  bgSpaceImg.src = 'space.jpg';
 
   function resize() {
     canvas.width = window.innerWidth;
@@ -268,14 +263,44 @@
   }
 
   function spawnEnemy() {
-    const fromLeft = Math.random() < 0.5;
+    const directions = ['left', 'right', 'top', 'bottom'];
+    const dir = directions[Math.floor(Math.random() * directions.length)];
+
     const minRadius = 15;
     const maxRadius = 25;
     const radius = Math.random() * (maxRadius - minRadius) + minRadius;
-    const y = Math.random() * (canvas.height - radius*2) + radius;
-    const x = fromLeft ? -radius : canvas.width + radius;
-    const speed = 3 + Math.random()*2 + level*0.5;
-    enemies.push({ x, y, radius, speed, dir: fromLeft ? 1 : -1 });
+    let x, y, speed, dx = 0, dy = 0;
+
+    speed = 3 + Math.random() * 2 + level * 0.5;
+
+    switch(dir) {
+      case 'left':
+        x = -radius;
+        y = Math.random() * (canvas.height - radius * 2) + radius;
+        dx = speed;
+        dy = 0;
+        break;
+      case 'right':
+        x = canvas.width + radius;
+        y = Math.random() * (canvas.height - radius * 2) + radius;
+        dx = -speed;
+        dy = 0;
+        break;
+      case 'top':
+        x = Math.random() * (canvas.width - radius * 2) + radius;
+        y = -radius;
+        dx = 0;
+        dy = speed;
+        break;
+      case 'bottom':
+        x = Math.random() * (canvas.width - radius * 2) + radius;
+        y = canvas.height + radius;
+        dx = 0;
+        dy = -speed;
+        break;
+    }
+
+    enemies.push({ x, y, radius, dx, dy });
   }
 
   function updateLevel(delta) {
@@ -315,7 +340,6 @@
     player.dy = keys['w'] ? -player.speed : keys['s'] ? player.speed : 0;
     player.dx = keys['a'] ? -player.speed : keys['d'] ? player.speed : 0;
 
-    // Calculate angle for rotation based on movement
     if(player.dx !== 0 || player.dy !== 0) {
       player.angle = Math.atan2(player.dy, player.dx);
     }
@@ -332,18 +356,17 @@
     }
     if (player.dashCooldown > 0) player.dashCooldown--;
 
-    // Bound player inside canvas
     player.x = Math.min(canvas.width - player.radius, Math.max(player.radius, player.x + player.dx));
     player.y = Math.min(canvas.height - player.radius, Math.max(player.radius, player.y + player.dy));
 
-    // Spawn enemies randomly
     if (Math.random() < 0.02 + level * 0.002) spawnEnemy();
 
-    // Move enemies and check collisions
     for(let i = enemies.length - 1; i >= 0; i--) {
       const e = enemies[i];
-      e.x += e.speed * e.dir;
-      if(e.x < -e.radius || e.x > canvas.width + e.radius) {
+      e.x += e.dx;
+      e.y += e.dy;
+
+      if (e.x < -e.radius || e.x > canvas.width + e.radius || e.y < -e.radius || e.y > canvas.height + e.radius) {
         enemies.splice(i, 1);
         continue;
       }
@@ -364,7 +387,6 @@
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Background (space image)
     if(bgSpaceImg.complete) {
       ctx.drawImage(bgSpaceImg, 0, 0, canvas.width, canvas.height);
     } else {
@@ -372,11 +394,10 @@
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    // Player (nave rosa)
     if(naveImg.complete) {
       ctx.save();
       ctx.translate(player.x, player.y);
-      ctx.rotate(player.angle + Math.PI / 2); // Ajuste para a imagem apontar para cima
+      ctx.rotate(player.angle + Math.PI / 2);
       ctx.drawImage(
         naveImg,
         -player.radius,
@@ -386,14 +407,12 @@
       );
       ctx.restore();
     } else {
-      // fallback: draw blue circle if image not loaded yet
       ctx.fillStyle = '#07f';
       ctx.beginPath();
       ctx.arc(player.x, player.y, player.radius, 0, Math.PI*2);
       ctx.fill();
     }
 
-    // Enemies (meteoros)
     enemies.forEach(e => {
       if(enemyImg.complete) {
         ctx.drawImage(
@@ -404,7 +423,6 @@
           e.radius * 2
         );
       } else {
-        // fallback: red circle if meteoro not loaded yet
         ctx.fillStyle = '#f00';
         ctx.beginPath();
         ctx.arc(e.x, e.y, e.radius, 0, Math.PI*2);
@@ -440,7 +458,6 @@
     loop();
   }
 
-  // Event listeners
   window.addEventListener('keydown', e => {
     keys[e.key.toLowerCase()] = true;
     if(e.key === ' ') e.preventDefault();
@@ -457,7 +474,6 @@
     if(gameStarted) draw();
   });
 
-  // Inicializa
   resize();
   updateHearts();
 </script>

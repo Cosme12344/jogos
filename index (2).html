@@ -5,22 +5,36 @@
 <title>Círculo Veloz</title>
 <style>
   html, body {
-    margin:0; padding:0;
-    background:#111;
-    height:100%;
-    overflow:hidden;
-    user-select:none;
+    margin: 0; padding: 0;
+    width: 100vw; height: 100vh;
+    overflow: hidden;
+    background: #111;
     font-family: Arial, sans-serif;
-    color:#eee;
+    color: #eee;
   }
+
+  canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: block;
+    background: #222;
+    z-index: 0;
+    border: none;
+    border-radius: 0;
+  }
+
   #info {
-    position: absolute;
+    position: fixed;
     top: 10px; left: 10px;
     display: flex;
     gap: 8px;
     font-size: 28px;
     z-index: 10;
+    user-select:none;
   }
+
   .heart {
     animation: pulseHeart 2s ease-in-out infinite;
     text-shadow:
@@ -28,63 +42,73 @@
       0 0 10px #f00,
       0 0 20px #f44,
       0 0 30px #f44;
-    user-select:none;
   }
+
   #level {
-    position: absolute;
+    position: fixed;
     top: 10px; right: 10px;
     font-size: 28px;
     z-index: 10;
   }
-  canvas {
-    display: block;
-    margin: 0 auto;
-    background: #222;
-    border: 3px solid #555;
-    border-radius: 8px;
-  }
+
   #menu, #gameOverMenu {
-    position: absolute;
-    top:50%; left:50%;
-    transform: translate(-50%, -50%);
-    background: #222;
-    border-radius: 12px;
-    padding: 30px 40px;
-    box-shadow: 0 0 20px #000;
-    max-width: 400px;
-    text-align: center;
-    z-index: 1000;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-image: url('menu.jpg'); /* Coloque aqui o nome correto da sua imagem */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    color: #eee;
+    z-index: 20;
   }
-  #menu h1, #gameOverMenu h1 {
+
+  #menu > h1, #gameOverMenu > h1 {
     color: #07f;
-    font-size: 40px;
+    font-size: 48px;
     margin-bottom: 20px;
     text-shadow: 0 0 10px #07f;
     animation: pulseTitle 2s infinite;
+    background: rgba(0,0,0,0.5);
+    padding: 12px 24px;
+    border-radius: 12px;
   }
-  #menu p {
-    font-size: 18px;
+
+  #menu > p, #gameOverMenu > #gameOverMsg {
+    font-size: 20px;
     margin-bottom: 20px;
     line-height: 1.4;
+    background: rgba(0,0,0,0.5);
+    padding: 12px 20px;
+    border-radius: 12px;
+    max-width: 90%;
+    text-align: center;
   }
+
   button {
     cursor: pointer;
     background: #07f;
     border: none;
     color: white;
-    font-size: 22px;
-    padding: 12px 30px;
+    font-size: 24px;
+    padding: 14px 40px;
     border-radius: 8px;
     box-shadow: 0 0 15px #07f;
     animation: pulseButton 2s infinite;
     user-select:none;
     transition: background-color 0.3s;
+    max-width: 90%;
   }
+
   button:hover {
     background-color: #0af;
-  }
-  #gameOverMsg {
-    margin-bottom: 20px;
   }
 
   /* Animations */
@@ -106,6 +130,7 @@
         0 0 60px #ff9999;
     }
   }
+
   @keyframes pulseTitle {
     0%, 100% {
       text-shadow: 0 0 10px #07f, 0 0 30px #07f;
@@ -116,6 +141,7 @@
       transform: scale(1.05);
     }
   }
+
   @keyframes pulseButton {
     0%, 100% {
       box-shadow: 0 0 15px #07f, 0 0 30px #07f;
@@ -126,6 +152,7 @@
       transform: scale(1.1);
     }
   }
+
   @keyframes dashPulse {
     0% {
       opacity: 0.7;
@@ -136,6 +163,7 @@
       transform: scale(3);
     }
   }
+
   .dash-effect {
     position: absolute;
     border-radius: 50%;
@@ -178,10 +206,6 @@
   const startBtn = document.getElementById('startBtn');
   const restartBtn = document.getElementById('restartBtn');
 
-  const baseWidth = 600;
-  const baseHeight = 400;
-  let scale = 1;
-
   let player;
   let enemies = [];
   let keys = {};
@@ -208,15 +232,14 @@
   bgSpaceImg.src = 'space.jpg'; // Ajuste para o nome correto e extensão
 
   function resize() {
-    scale = Math.min(window.innerWidth / baseWidth, window.innerHeight / baseHeight);
-    canvas.width = baseWidth * scale;
-    canvas.height = baseHeight * scale;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
     player = {
       x: canvas.width / 2,
       y: canvas.height / 2,
-      radius: 15 * scale,
-      speed: 5 * scale,
+      radius: 15,
+      speed: 5,
       dx: 0,
       dy: 0,
       dashCooldown: 0,
@@ -246,12 +269,12 @@
 
   function spawnEnemy() {
     const fromLeft = Math.random() < 0.5;
-    const minRadius = 15 * scale;
-    const maxRadius = 25 * scale;
+    const minRadius = 15;
+    const maxRadius = 25;
     const radius = Math.random() * (maxRadius - minRadius) + minRadius;
     const y = Math.random() * (canvas.height - radius*2) + radius;
     const x = fromLeft ? -radius : canvas.width + radius;
-    const speed = (3 + Math.random()*2 + level*0.5) * scale;
+    const speed = 3 + Math.random()*2 + level*0.5;
     enemies.push({ x, y, radius, speed, dir: fromLeft ? 1 : -1 });
   }
 
@@ -398,7 +421,7 @@
 
   function showGameOver() {
     gameOverMsg.innerHTML = `Você chegou ao nível ${level}!`;
-    gameOverMenu.style.display = 'block';
+    gameOverMenu.style.display = 'flex';
   }
 
   function startGame() {
